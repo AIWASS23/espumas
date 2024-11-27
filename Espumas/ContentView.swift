@@ -13,8 +13,10 @@ struct ContentView: View {
 
     @Environment(AppModel.self) private var appModel
 
+#if os(visionOS)
     @Environment(\.dismissImmersiveSpace) private var dismissImmersiveSpace
     @Environment(\.openImmersiveSpace) private var openImmersiveSpace
+#endif
 
     @Environment(\.scenePhase) private var scenePhase
 
