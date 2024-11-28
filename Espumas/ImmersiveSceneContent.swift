@@ -17,13 +17,15 @@ struct ImmersiveSceneContent: View {
     
     @State var handTrackedEntity: Entity = {
         let handAnchor = AnchorEntity(.hand(.left, location: .aboveHand))
-       // let handAnchor = AnchorEntity(.hand(.either, location: .aboveHand))
+        // let handAnchor = AnchorEntity(.hand(.either, location: .aboveHand))
         return handAnchor
     }()
     
     
     @State var clones: [Entity] = []
     @State var originalPositions: [SIMD3<Float>] = []
+    @State var selectedEntity: Entity? = nil
+    
     
     var body: some View {
         RealityView { content, attachments in
@@ -70,11 +72,73 @@ struct ImmersiveSceneContent: View {
             .onEnded { value in
                 let position = value.entity.position
                 let audioPosition = AVAudio3DPoint(x: position.x, y: position.y, z: position.z)
-
+                
                 value.entity.removeFromParent()
                 
                 AudioManager.shared.playSound(named: "bubble", at: audioPosition)
                 
+            }
+    }
+    
+    var magnifyGesture: some Gesture {
+        MagnifyGesture()
+            .targetedToAnyEntity()
+            .onChanged { value in
+                
+                let scaler = Float(value.magnification)
+                let clampedScale = max(0.25, min(scaler, 3.0))
+                value.entity.setScale(SIMD3<Float>(repeating: clampedScale), relativeTo: value.entity.parent!)
+                
+                // value.entity.setScale(.init(repeating: clampedScale),relativeTo: value.entity.parent!)
+                
+            }
+    }
+    
+    var dragGesture: some Gesture {
+        DragGesture()
+            .targetedToAnyEntity()
+            .onChanged { value in
+                let newPosition = value.convert(value.location3D, from: .local, to: value.entity.parent!)
+                value.entity.position = newPosition
+                
+                //value.entity.position = value.convert(value.location3D, from: .local, to: value.entity.parent!)
+            }
+    }
+    
+    var longPressGesture: some Gesture {
+        LongPressGesture(minimumDuration: 1.0)
+            .targetedToAnyEntity()
+            .onEnded { value in
+                if selectedEntity === value.entity {
+                    lowerEntity(value.entity)
+                    selectedEntity = nil
+                } else {
+                    if let previousSelection = selectedEntity {
+                        lowerEntity(previousSelection)
+                    }
+                    raiseEntity(value.entity)
+                    selectedEntity = value.entity
+                }
+            }
+    }
+    
+    var spatialTapGesture: some Gesture {
+        SpatialTapGesture()
+            .targetedToAnyEntity()
+            .onEnded { value in
+                guard let selectedEntity = selectedEntity else {
+                    print("Nenhuma entidade selecionada para posicionar o indicador.")
+                    return
+                }
+                
+                let tappedPosition = value.convert(value.location3D, from: .local, to: selectedEntity)
+                
+                if let indicator = selectedEntity.findEntity(named: "Indicator") {
+                    indicator.position = tappedPosition
+                } else {
+                    let newIndicator = createIndicator(at: tappedPosition)
+                    selectedEntity.addChild(newIndicator)
+                }
             }
     }
     
@@ -106,7 +170,7 @@ struct ImmersiveSceneContent: View {
             return
         }
         
-        Timer.scheduledTimer(withTimeInterval: 0.5, repeats: true) { _ in
+        Timer.scheduledTimer(withTimeInterval: 2.5, repeats: true) { _ in
             for (index, clone) in clones.enumerated() {
                 
                 let originalPos = originalPositions[index]
@@ -137,5 +201,22 @@ struct ImmersiveSceneContent: View {
         } catch {
             print("Failed to configure audio session: \(error)")
         }
+    }
+    
+    func raiseEntity(_ entity: Entity) {
+        let raisedPosition = entity.position + SIMD3<Float>(0, 0.2, 0)
+        entity.position = raisedPosition
+    }
+    
+    func lowerEntity(_ entity: Entity) {
+        let loweredPosition = entity.position - SIMD3<Float>(0, 0.2, 0)
+        entity.position = loweredPosition
+    }
+    
+    func createIndicator(at position: SIMD3<Float>) -> Entity {
+        let indicator = ModelEntity(mesh: .generateSphere(radius: 0.05), materials: [SimpleMaterial(color: .yellow, isMetallic: true)])
+        indicator.name = "Indicator"
+        indicator.position = position
+        return indicator
     }
 }

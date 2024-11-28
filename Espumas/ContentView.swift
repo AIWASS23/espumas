@@ -25,7 +25,7 @@ struct ContentView: View {
 
             Text("🫧")
                 .font(.extraLargeTitle2)
-            Text("Bubble Garden")
+            Text("Agile")
                 .font(.title)
             Text("Immersive Spaces")
                 .font(.extraLargeTitle)
