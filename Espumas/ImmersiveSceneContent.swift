@@ -25,6 +25,7 @@ struct ImmersiveSceneContent: View {
     @State var clones: [Entity] = []
     @State var originalPositions: [SIMD3<Float>] = []
     @State var selectedEntity: Entity? = nil
+    @StateObject private var arKitSessionManager = ARKitSessionManager()
     
     
     var body: some View {
@@ -62,7 +63,16 @@ struct ImmersiveSceneContent: View {
         }
         .gesture(tap)
         .onAppear {
-            configureAudioSession()
+            Task{
+                await arKitSessionManager.startSession()
+                await arKitSessionManager.handleWorldTrackingUpdates()
+                configureAudioSession()
+            }
+            //configureAudioSession()
+        }
+        
+        .onDisappear {
+            arKitSessionManager.stopSession()
         }
     }
     
@@ -70,8 +80,12 @@ struct ImmersiveSceneContent: View {
         TapGesture()
             .targetedToAnyEntity()
             .onEnded { value in
-                let position = value.entity.position
+                let entity = value.entity
+                let position = entity.position
+                //let position = value.entity.position
                 let audioPosition = AVAudio3DPoint(x: position.x, y: position.y, z: position.z)
+                
+                print("Bolha estourada na posição: \(position)")
                 
                 value.entity.removeFromParent()
                 
@@ -187,6 +201,13 @@ struct ImmersiveSceneContent: View {
     }
     
     func updateListenerPosition() {
+        
+        let pose = arKitSessionManager.getOriginFromDeviceTransform()
+        print("Device Transforms: \(pose)")
+        let positionAnchor = SIMD3<Float>(pose.columns.3.x, pose.columns.3.y, pose.columns.3.z)
+        print(positionAnchor)
+
+        
         if let handEntity = handTrackedEntity as? AnchorEntity {
             let position = handEntity.position
             AudioManager.shared.updateListenerPosition(x: position.x, y: position.y, z: position.z)

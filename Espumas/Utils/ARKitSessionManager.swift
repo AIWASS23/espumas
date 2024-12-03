@@ -30,14 +30,12 @@ class ARKitSessionManager: ObservableObject {
     }
 
     func handleWorldTrackingUpdates() async {
-        print("\(#function): called")
         for await update in worldTracking.anchorUpdates {
             print("\(#function): anchorUpdates: \(update)")
         }
     }
 
     func monitorSessionEvent() async {
-        print("\(#function): called")
         for await event in session.events {
             print("\(#function): \(event)")
         }
