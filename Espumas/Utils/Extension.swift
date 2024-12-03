@@ -245,3 +245,9 @@ extension simd_float4x4 {
     }
 }
 
+extension CGFloat {
+    func clamped(to: ClosedRange<CGFloat>) -> CGFloat {
+        return to.lowerBound > self ? to.lowerBound : to.upperBound < self ? to.upperBound : self
+    }
+}
+
