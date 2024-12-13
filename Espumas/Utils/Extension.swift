@@ -221,6 +221,13 @@ extension simd_float4x4 {
     var position: SIMD3<Float> {
         SIMD3<Float>(self.columns.3.x, self.columns.3.y, self.columns.3.z)
     }
+    
+    func calculateLookAtPoint(from transform: simd_float4x4, distance: Float, yOffset: Float = 0.0) -> simd_float3 {
+        let originalDirection = simd_float3(self.columns.2.x, self.columns.2.y, self.columns.2.z)
+        var newPosition = simd_float3(self.columns.3.x, self.columns.3.y, self.columns.3.z) + originalDirection * distance
+        newPosition.y += yOffset
+        return newPosition
+    }
 
     var rotation: simd_quatf {
         let x = simd_float3(self.columns.0.x, self.columns.0.y, self.columns.0.z)
